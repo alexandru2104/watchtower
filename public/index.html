@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchtower — price alerts that don't blink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0E1A;
+    --panel: #131A2B;
+    --panel-2: #1B2438;
+    --border: #262F45;
+    --text: #E8EAF2;
+    --text-dim: #8B93A7;
+    --accent: #F5A623;
+    --accent-dim: #7A5A24;
+    --safe: #3FA796;
+    --danger: #E5606A;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  a { color: var(--accent); }
+
+  ::selection { background: var(--accent); color: #1A1206; }
+
+  /* ---------- Layout shells ---------- */
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .brand .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.15);
+  }
+
+  /* ---------- Hero + Radar ---------- */
+
+  .hero {
+    padding: 40px 0 56px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 40px;
+    align-items: center;
+  }
+
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; padding-top: 8px; }
+  }
+
+  .eyebrow {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 46px);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+  }
+
+  .hero p {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-top: 16px;
+    max-width: 46ch;
+  }
+
+  .radar-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .radar-ring {
+    position: absolute;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    inset: 0;
+  }
+  .radar-ring:nth-child(2) { inset: 16%; }
+  .radar-ring:nth-child(3) { inset: 32%; }
+  .radar-ring:nth-child(4) { inset: 48%; }
+
+  .radar-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(245,166,35,0.35), transparent 28%);
+    animation: spin 4s linear infinite;
+    mask-image: radial-gradient(circle, transparent 0%, black 4%);
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .blip {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--safe);
+    box-shadow: 0 0 0 0 rgba(63, 167, 150, 0.6);
+    animation: pulse 2.4s ease-out infinite;
+  }
+  .blip.amber { background: var(--accent); box-shadow: 0 0 0 0 rgba(245,166,35,0.6); }
+  .blip::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(63, 167, 150, 0.5); }
+    70% { box-shadow: 0 0 0 10px rgba(63, 167, 150, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(63, 167, 150, 0); }
+  }
+
+  .radar-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 6px; height: 6px;
+    background: var(--text);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* ---------- Panels / cards ---------- */
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+
+  .panel + .panel { margin-top: 20px; }
+
+  .panel h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .panel .sub {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  /* ---------- Auth ---------- */
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+
+  .tab {
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-dim);
+    user-select: none;
+    transition: all 0.15s ease;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #1A1206;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+
+  input:focus, select:focus, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  input.mono-input { font-family: 'JetBrains Mono', monospace; }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px 20px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #1A1206;
+    width: 100%;
+  }
+  .btn-primary:hover { background: #ffb845; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(229, 96, 106, 0.35);
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+  .btn-danger:hover { background: rgba(229, 96, 106, 0.1); }
+
+  .error-text {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  /* ---------- App / dashboard ---------- */
+
+  #app { display: none; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .plan-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .telegram-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+  .status-dot.on { background: var(--safe); }
+
+  .add-form {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+  @media (max-width: 640px) {
+    .add-form { grid-template-columns: 1fr 1fr; }
+  }
+
+  .items {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .item-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .item-symbol {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 15px;
+    width: 56px;
+  }
+
+  .item-cond { color: var(--text-dim); font-size: 14px; }
+  .item-cond .val { color: var(--text); font-family: 'JetBrains Mono', monospace; }
+
+  .badge {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+  .badge.active { color: var(--safe); border: 1px solid rgba(63,167,150,0.4); }
+  .badge.triggered { color: var(--text-dim); border: 1px solid var(--border); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 50px 0 30px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .hidden { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .radar-sweep { animation: none; }
+    .blip { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav>
+    <div class="brand"><span class="dot"></span> Watchtower</div>
+    <button class="btn-ghost hidden" id="logoutBtn" onclick="logout()">Log out</button>
+  </nav>
+
+  <!-- HERO (shown only when logged out) -->
+  <section id="heroSection">
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Price alerts, unattended</span>
+        <h1>Markets don't sleep.<br>Something should watch them.</h1>
+        <p>Set a threshold on any coin, and Watchtower checks it every minute — silently — until it's worth your attention. Then it taps you on the shoulder, on Telegram.</p>
+      </div>
+      <div class="radar-box" aria-hidden="true">
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
+        <div class="radar-sweep"></div>
+        <div class="radar-center"></div>
+        <div class="blip" style="top: 22%; left: 65%;" data-label="BTC"></div>
+        <div class="blip amber" style="top: 68%; left: 30%; animation-delay: 0.8s;" data-label="ETH"></div>
+        <div class="blip" style="top: 40%; left: 20%; animation-delay: 1.5s;" data-label="SOL"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUTH -->
+  <section id="authSection">
+    <div class="panel" style="max-width: 420px; margin: 0 auto;">
+      <div class="tabs">
+        <div class="tab active" id="tabLogin" onclick="switchTab('login')">Log in</div>
+        <div class="tab" id="tabRegister" onclick="switchTab('register')">Register</div>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuth(event)">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" required autocomplete="current-password" minlength="8">
+        </div>
+        <button type="submit" class="btn-primary" id="authSubmitBtn">Log in</button>
+        <div class="error-text" id="authError"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- APP (shown only when logged in) -->
+  <section id="app">
+    <div class="topbar">
+      <div class="topbar-left" id="userEmail"></div>
+      <div class="plan-badge" id="planBadge">FREE PLAN</div>
+    </div>
+
+    <div class="panel">
+      <h2>Telegram delivery</h2>
+      <div class="sub">Message your bot <span class="mono">/start</span>, then paste the chat ID it gives you.</div>
+      <div class="telegram-status" style="margin-bottom: 16px;">
+        <span class="status-dot" id="tgDot"></span>
+        <span id="tgStatusText">Not connected</span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="tgChatId" placeholder="e.g. 7070986558" class="mono-input">
+        <button class="btn-ghost" style="white-space:nowrap;" onclick="connectTelegram()">Connect</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Watched alerts</h2>
+      <div class="sub">Free plan covers 3 active alerts at a time.</div>
+
+      <form class="add-form" onsubmit="addAlert(event)">
+        <div class="field" style="margin:0;">
+          <label for="symbol">Symbol</label>
+          <select id="symbol">
+            <option>BTC</option><option>ETH</option><option>SOL</option>
+            <option>BNB</option><option>XRP</option><option>ADA</option>
+            <option>DOGE</option><option>MATIC</option><option>DOT</option><option>LTC</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;">
+          <label for="direction">Condition</label>
+          <select id="direction">
+            <option value="above">Goes above</option>
+            <option value="below">Drops below</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;">
+          <label for="threshold">Price (USD)</label>
+          <input type="number" id="threshold" class="mono-input" placeholder="60000" required min="0" step="any">
+        </div>
+        <button type="submit" class="btn-primary" style="width:auto;">Add alert</button>
+      </form>
+
+      <div class="error-text" id="alertError"></div>
+      <div class="items" id="itemsList"></div>
+    </div>
+  </section>
+
+  <footer id="pageFooter">Built for people who'd rather get a Telegram ping than stare at a chart all day.</footer>
+</div>
+
+<script>
+  const API_BASE = window.location.origin;
+  let token = localStorage.getItem('watchtower_token');
+  let authMode = 'login';
+
+  function switchTab(mode) {
+    authMode = mode;
+    document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+    document.getElementById('authSubmitBtn').textContent = mode === 'login' ? 'Log in' : 'Create account';
+    document.getElementById('authError').style.display = 'none';
+  }
+
+  async function handleAuth(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('authError');
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/${authMode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+      token = data.token;
+      localStorage.setItem('watchtower_token', token);
+      enterApp(data.user);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  }
+
+  function logout() {
+    token = null;
+    localStorage.removeItem('watchtower_token');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('heroSection').style.display = 'block';
+    document.getElementById('logoutBtn').classList.add('hidden');
+    document.getElementById('pageFooter').style.display = 'block';
+  }
+
+  async function enterApp(user) {
+    document.getElementById('heroSection').style.display = 'none';
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('pageFooter').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('logoutBtn').classList.remove('hidden');
+
+    if (!user) {
+      const res = await fetch(`${API_BASE}/user/me`, { headers: authHeader() });
+      const data = await res.json();
+      user = data.user;
+    }
+
+    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('planBadge').textContent = (user.plan || 'free').toUpperCase() + ' PLAN';
+
+    const connected = !!user.telegram_chat_id;
+    document.getElementById('tgDot').classList.toggle('on', connected);
+    document.getElementById('tgStatusText').textContent = connected
+      ? `Connected — chat ID ${user.telegram_chat_id}`
+      : 'Not connected';
+
+    loadAlerts();
+  }
+
+  function authHeader() {
+    return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+  }
+
+  async function connectTelegram() {
+    const chatId = document.getElementById('tgChatId').value.trim();
+    if (!chatId) return;
+    await fetch(`${API_BASE}/user/telegram`, {
+      method: 'POST',
+      headers: authHeader(),
+      body: JSON.stringify({ telegram_chat_id: chatId })
+    });
+    document.getElementById('tgDot').classList.add('on');
+    document.getElementById('tgStatusText').textContent = `Connected — chat ID ${chatId}`;
+  }
+
+  async function loadAlerts() {
+    const res = await fetch(`${API_BASE}/watchlist`, { headers: authHeader() });
+    const data = await res.json();
+    renderAlerts(data.items || []);
+  }
+
+  function renderAlerts(items) {
+    const list = document.getElementById('itemsList');
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty-state">No alerts yet. Add one above to start watching a price.</div>`;
+      return;
+    }
+    list.innerHTML = items.map(item => `
+      <div class="item">
+        <div class="item-left">
+          <span class="item-symbol">${item.symbol}</span>
+          <span class="item-cond">${item.direction === 'above' ? 'goes above' : 'drops below'} <span class="val">$${Number(item.threshold).toLocaleString()}</span></span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="badge ${item.is_active ? 'active' : 'triggered'}">${item.is_active ? 'watching' : 'triggered'}</span>
+          <button class="btn-danger" onclick="deleteAlert(${item.id})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function addAlert(e) {
+    e.preventDefault();
+    const symbol = document.getElementById('symbol').value;
+    const direction = document.getElementById('direction').value;
+    const threshold = parseFloat(document.getElementById('threshold').value);
+    const errEl = document.getElementById('alertError');
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/watchlist`, {
+        method: 'POST',
+        headers: authHeader(),
+        body: JSON.stringify({ symbol, direction, threshold, indicator_type: 'price' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not add alert.');
+      document.getElementById('threshold').value = '';
+      loadAlerts();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  }
+
+  async function deleteAlert(id) {
+    await fetch(`${API_BASE}/watchlist/${id}`, { method: 'DELETE', headers: authHeader() });
+    loadAlerts();
+  }
+
+  // On load: if we already have a token, skip straight to the dashboard.
+  if (token) {
+    enterApp(null).catch(() => logout());
+  }
+</script>
+
+</body>
+</html>
