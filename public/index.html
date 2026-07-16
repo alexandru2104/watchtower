@@ -460,7 +460,10 @@
   <section id="app">
     <div class="topbar">
       <div class="topbar-left" id="userEmail"></div>
-      <div class="plan-badge" id="planBadge">FREE PLAN</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="btn-ghost hidden" id="upgradeBtn" onclick="openCheckout()">Upgrade to Premium — €6/mo</button>
+        <div class="plan-badge" id="planBadge">FREE PLAN</div>
+      </div>
     </div>
 
     <div class="panel">
@@ -515,6 +518,18 @@
   const API_BASE = window.location.origin;
   let token = localStorage.getItem('watchtower_token');
   let authMode = 'login';
+  let currentUser = null;
+  let checkoutBaseUrl = null;
+
+  fetch(`${API_BASE}/config`).then(r => r.json()).then(cfg => { checkoutBaseUrl = cfg.checkoutBaseUrl; });
+
+  function openCheckout() {
+    if (!checkoutBaseUrl || !currentUser) return;
+    const url = new URL(checkoutBaseUrl);
+    url.searchParams.set('checkout[email]', currentUser.email);
+    url.searchParams.set('checkout[custom][user_id]', currentUser.id);
+    window.open(url.toString(), '_blank');
+  }
 
   function switchTab(mode) {
     authMode = mode;
@@ -574,6 +589,14 @@
 
     document.getElementById('userEmail').textContent = user.email;
     document.getElementById('planBadge').textContent = (user.plan || 'free').toUpperCase() + ' PLAN';
+    currentUser = user;
+
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    if (user.plan === 'free') {
+      upgradeBtn.classList.remove('hidden');
+    } else {
+      upgradeBtn.classList.add('hidden');
+    }
 
     const connected = !!user.telegram_chat_id;
     document.getElementById('tgDot').classList.toggle('on', connected);
