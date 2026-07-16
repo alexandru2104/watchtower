@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Watchtower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0E1A; --panel: #131A2B; --border: #262F45;
+    --text: #E8EAF2; --text-dim: #8B93A7; --accent: #F5A623;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; line-height: 1.7; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 60px 24px 100px; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 32px; margin-bottom: 6px; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 19px; margin-top: 40px; margin-bottom: 12px; }
+  p, li { color: var(--text-dim); font-size: 15px; }
+  a { color: var(--accent); }
+  .updated { color: var(--text-dim); font-size: 13px; margin-bottom: 40px; }
+  .back { display: inline-block; margin-bottom: 30px; color: var(--accent); text-decoration: none; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-dim); }
+  th { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back">← Back to Watchtower</a>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: July 2026</p>
+
+  <p>This Policy explains what data Watchtower collects, why, and how you can control it. If you're in the EU/EEA (including Romania), the data protection rights described below apply to you under the GDPR.</p>
+
+  <h2>1. What we collect</h2>
+  <table>
+    <tr><th>Data</th><th>Why we collect it</th></tr>
+    <tr><td>Email address</td><td>Account identification and login</td></tr>
+    <tr><td>Password (hashed, never stored in plain text)</td><td>Authentication</td></tr>
+    <tr><td>Telegram chat ID</td><td>Delivering your price alerts</td></tr>
+    <tr><td>Watchlist entries (symbol, threshold, direction)</td><td>Core functionality of the Service</td></tr>
+    <tr><td>Alert trigger history (Premium)</td><td>Showing you your past alerts</td></tr>
+  </table>
+  <p>We do not collect payment card details directly — those are handled entirely by our payment processor (see below).</p>
+
+  <h2>2. Third parties we share data with</h2>
+  <ul>
+    <li><strong>CoinGecko</strong> — used to fetch live price data. No personal data is sent to CoinGecko; we only query public price endpoints.</li>
+    <li><strong>Telegram</strong> — your chat ID is used solely to deliver alert messages via the Telegram Bot API.</li>
+    <li><strong>LemonSqueezy</strong> — our payment processor and merchant of record for paid subscriptions. They handle your payment details and billing information directly; we never see or store your card data.</li>
+    <li><strong>Railway</strong> — our hosting provider, where the application and database run.</li>
+  </ul>
+
+  <h2>3. Local storage (not cookies)</h2>
+  <p>Watchtower stores your login session token in your browser's local storage to keep you logged in. This data stays on your device and is not accessible to other sites.</p>
+
+  <h2>4. How long we keep your data</h2>
+  <p>We retain your account data for as long as your account is active. If you delete your account (or request deletion by contacting us), your data is removed from our database, excluding records LemonSqueezy retains independently for billing/tax compliance.</p>
+
+  <h2>5. Your rights</h2>
+  <p>Under GDPR, you have the right to:</p>
+  <ul>
+    <li>Access the personal data we hold about you</li>
+    <li>Correct inaccurate data</li>
+    <li>Request deletion of your data ("right to be forgotten")</li>
+    <li>Object to or restrict certain processing</li>
+    <li>Request a portable copy of your data</li>
+  </ul>
+  <p>To exercise any of these, contact us via the email on your LemonSqueezy receipt or the Service's storefront.</p>
+
+  <h2>6. Security</h2>
+  <p>Passwords are hashed with bcrypt and never stored in plain text. The Service runs over HTTPS. We apply rate limiting on authentication endpoints to reduce automated abuse.</p>
+
+  <h2>7. Children's privacy</h2>
+  <p>Watchtower is not directed at, and should not be used by, anyone under 16.</p>
+
+  <h2>8. Changes to this Policy</h2>
+  <p>We may update this Policy occasionally. Material changes will be reflected here with an updated date.</p>
+
+  <h2>9. Contact</h2>
+  <p>Questions about this Policy or your data? Reach out via the contact email listed on your LemonSqueezy receipt or the Service's storefront.</p>
+</div>
+</body>
+</html>
