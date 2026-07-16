@@ -457,7 +457,11 @@
         </div>
         <button type="submit" class="btn-primary" id="authSubmitBtn">Log in</button>
         <div class="error-text" id="authError"></div>
+        <div id="forgotWrap" style="margin-top:10px; text-align:center;">
+          <a href="#" onclick="handleForgotPassword(event)" style="font-size:13px; color:var(--text-dim); text-decoration:underline;">Forgot password?</a>
+        </div>
       </form>
+      <div class="error-text" id="forgotMsg" style="color:var(--safe); display:none;"></div>
     </div>
   </section>
 
@@ -677,6 +681,37 @@
     document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
     document.getElementById('authSubmitBtn').textContent = mode === 'login' ? 'Log in' : 'Create account';
     document.getElementById('authError').style.display = 'none';
+    document.getElementById('forgotWrap').style.display = mode === 'login' ? 'block' : 'none';
+    document.getElementById('forgotMsg').style.display = 'none';
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const msgEl = document.getElementById('forgotMsg');
+
+    if (!email) {
+      msgEl.textContent = 'Enter your email above first, then click "Forgot password?" again.';
+      msgEl.style.color = 'var(--danger)';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      msgEl.textContent = data.message || 'If that email is registered, a reset link has been sent.';
+      msgEl.style.color = 'var(--safe)';
+      msgEl.style.display = 'block';
+    } catch (err) {
+      msgEl.textContent = 'Something went wrong. Try again in a moment.';
+      msgEl.style.color = 'var(--danger)';
+      msgEl.style.display = 'block';
+    }
   }
 
   async function handleAuth(e) {

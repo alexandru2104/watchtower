@@ -50,4 +50,16 @@ try {
   // Column already exists — safe to ignore.
 }
 
+// Migration: password reset support.
+try {
+  db.exec('ALTER TABLE users ADD COLUMN reset_token_hash TEXT');
+} catch (err) {
+  // Column already exists — safe to ignore.
+}
+try {
+  db.exec('ALTER TABLE users ADD COLUMN reset_token_expires TEXT');
+} catch (err) {
+  // Column already exists — safe to ignore.
+}
+
 module.exports = db;
