@@ -498,7 +498,7 @@
         <div class="price">$0<span>/mo</span></div>
         <ul>
           <li>3 active alerts</li>
-          <li>Price alerts (crypto)</li>
+          <li>One-shot — recreate after it fires</li>
           <li>Telegram delivery</li>
           <li>Checked every minute</li>
         </ul>
@@ -510,10 +510,10 @@
         <div class="price">$9<span>/mo</span></div>
         <ul>
           <li>Unlimited active alerts</li>
-          <li>Price alerts (crypto)</li>
+          <li>Auto re-arms — keeps watching after it fires</li>
+          <li>Full alert history log</li>
           <li>Telegram delivery</li>
           <li>Checked every minute</li>
-          <li>Priority support</li>
         </ul>
         <button class="btn-primary" style="width:100%;" onclick="switchTab('register'); document.getElementById('authSection').scrollIntoView({behavior:'smooth'});">Start free, upgrade later</button>
       </div>
@@ -538,6 +538,10 @@
       <details>
         <summary>Do I need to keep a tab open?</summary>
         <p>No. Watchtower runs on our servers, not in your browser. Close the tab, close your laptop — the alert still fires and still reaches your Telegram.</p>
+      </details>
+      <details>
+        <summary>What's the actual difference between Free and Premium?</summary>
+        <p>Free alerts fire once, then deactivate — you recreate them to keep watching. Premium alerts stay armed and can fire again (with a 30-minute cooldown so you're not pinged every minute), plus you get unlimited alerts and a full history of every past trigger.</p>
       </details>
       <details>
         <summary>Can I cancel anytime?</summary>
@@ -605,7 +609,7 @@
 
     <div class="panel">
       <h2>Watched alerts</h2>
-      <div class="sub">Free plan covers 3 active alerts at a time.</div>
+      <div class="sub">Free plan: 3 alerts, one-shot — recreate after it fires. Premium: unlimited, auto re-arms.</div>
 
       <form class="add-form" onsubmit="addAlert(event)">
         <div class="field" style="margin:0;">
@@ -632,6 +636,12 @@
 
       <div class="error-text" id="alertError"></div>
       <div class="items" id="itemsList"></div>
+    </div>
+
+    <div class="panel hidden" id="historyPanel">
+      <h2>Alert history</h2>
+      <div class="sub">Every time an alert has fired, premium keeps the record.</div>
+      <div class="items" id="historyList"></div>
     </div>
   </section>
 
@@ -724,10 +734,14 @@
     currentUser = user;
 
     const upgradeBtn = document.getElementById('upgradeBtn');
+    const historyPanel = document.getElementById('historyPanel');
     if (user.plan === 'free') {
       upgradeBtn.classList.remove('hidden');
+      historyPanel.classList.add('hidden');
     } else {
       upgradeBtn.classList.add('hidden');
+      historyPanel.classList.remove('hidden');
+      loadHistory();
     }
 
     const connected = !!user.telegram_chat_id;
@@ -777,6 +791,26 @@
           <span class="badge ${item.is_active ? 'active' : 'triggered'}">${item.is_active ? 'watching' : 'triggered'}</span>
           <button class="btn-danger" onclick="deleteAlert(${item.id})">Delete</button>
         </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadHistory() {
+    const res = await fetch(`${API_BASE}/watchlist/history`, { headers: authHeader() });
+    if (!res.ok) return;
+    const data = await res.json();
+    const list = document.getElementById('historyList');
+    if (!data.history || data.history.length === 0) {
+      list.innerHTML = `<div class="empty-state">No triggers yet — this fills in as your alerts fire.</div>`;
+      return;
+    }
+    list.innerHTML = data.history.map(h => `
+      <div class="item">
+        <div class="item-left">
+          <span class="item-symbol">${h.symbol}</span>
+          <span class="item-cond">${h.direction === 'above' ? 'crossed above' : 'dropped below'} <span class="val">$${Number(h.threshold).toLocaleString()}</span> at <span class="val">$${Number(h.value_at_trigger).toLocaleString()}</span></span>
+        </div>
+        <span class="badge triggered">${new Date(h.triggered_at + 'Z').toLocaleString()}</span>
       </div>
     `).join('');
   }

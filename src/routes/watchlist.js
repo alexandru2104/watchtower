@@ -97,4 +97,25 @@ router.patch('/:id', (req, res) => {
   res.json({ item: updated });
 });
 
+// GET /watchlist/history — premium only. Shows past alert triggers.
+router.get('/history', (req, res) => {
+  const user = db.prepare('SELECT plan FROM users WHERE id = ?').get(req.userId);
+  if (user.plan !== 'premium') {
+    return res.status(403).json({ error: 'Alert history is a Premium feature.' });
+  }
+
+  const history = db
+    .prepare(
+      `SELECT al.id, al.triggered_at, al.value_at_trigger, wi.symbol, wi.direction, wi.threshold
+       FROM alerts_log al
+       JOIN watchlist_items wi ON wi.id = al.watchlist_item_id
+       WHERE wi.user_id = ?
+       ORDER BY al.triggered_at DESC
+       LIMIT 50`
+    )
+    .all(req.userId);
+
+  res.json({ history });
+});
+
 module.exports = router;

@@ -3,10 +3,12 @@ const db = require('../db');
 const { fetchPrice } = require('./priceProvider');
 const { sendTelegramAlert } = require('./notifier');
 
+const PREMIUM_COOLDOWN_MS = 30 * 60 * 1000; // 30 min between re-fires on the same alert
+
 async function checkAllActiveAlerts() {
   const items = db
     .prepare(
-      `SELECT wi.*, u.telegram_chat_id
+      `SELECT wi.*, u.telegram_chat_id, u.plan
        FROM watchlist_items wi
        JOIN users u ON u.id = wi.user_id
        WHERE wi.is_active = 1`
@@ -32,20 +34,32 @@ async function checkAllActiveAlerts() {
     const triggered =
       item.direction === 'above' ? currentValue >= item.threshold : currentValue <= item.threshold;
 
-    if (triggered) {
-      db.prepare(
-        'INSERT INTO alerts_log (watchlist_item_id, value_at_trigger) VALUES (?, ?)'
-      ).run(item.id, currentValue);
+    if (!triggered) continue;
 
-      // Deactivate so it doesn't spam every cron tick; user can reactivate
-      db.prepare('UPDATE watchlist_items SET is_active = 0 WHERE id = ?').run(item.id);
+    // Premium: alert stays active and can re-fire, but only after a cooldown,
+    // so it doesn't ping every single minute while the price sits past the threshold.
+    if (item.plan === 'premium') {
+      const lastFired = item.last_triggered_at ? new Date(item.last_triggered_at + 'Z').getTime() : 0;
+      if (Date.now() - lastFired < PREMIUM_COOLDOWN_MS) continue;
+    }
 
-      if (item.telegram_chat_id) {
-        await sendTelegramAlert(
-          item.telegram_chat_id,
-          `🔔 ${item.symbol} ${item.direction === 'above' ? 'crossed above' : 'dropped below'} ${item.threshold}. Current: ${currentValue}`
-        );
-      }
+    db.prepare(
+      'INSERT INTO alerts_log (watchlist_item_id, value_at_trigger) VALUES (?, ?)'
+    ).run(item.id, currentValue);
+
+    if (item.plan === 'premium') {
+      // Stays active, just record when it last fired.
+      db.prepare("UPDATE watchlist_items SET last_triggered_at = datetime('now') WHERE id = ?").run(item.id);
+    } else {
+      // Free plan: one-shot. Deactivate so it doesn't spam every cron tick; user recreates it.
+      db.prepare("UPDATE watchlist_items SET is_active = 0, last_triggered_at = datetime('now') WHERE id = ?").run(item.id);
+    }
+
+    if (item.telegram_chat_id) {
+      await sendTelegramAlert(
+        item.telegram_chat_id,
+        `🔔 ${item.symbol} ${item.direction === 'above' ? 'crossed above' : 'dropped below'} ${item.threshold}. Current: ${currentValue}`
+      );
     }
   }
 }
