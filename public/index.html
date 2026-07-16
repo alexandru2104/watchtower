@@ -408,10 +408,10 @@
 <div class="wrap">
   <nav>
     <div class="brand"><span class="dot"></span> Watchtower</div>
-    <div style="display:flex; align-items:center; gap:20px;">
+    <div style="display:flex; align-items:center; gap:24px;">
       <a href="#pricingSection" class="nav-link hidden-when-app" style="font-size:14px; color:var(--text-dim); text-decoration:none;">Pricing</a>
       <a href="#faqSection" class="nav-link hidden-when-app" style="font-size:14px; color:var(--text-dim); text-decoration:none;">Questions</a>
-      <a href="#authSection" class="nav-link hidden-when-app" style="font-size:14px; color:var(--text-dim); text-decoration:none;" onclick="switchTab('login')">Log in</a>
+      <button class="btn-ghost nav-link" id="navLoginBtn" onclick="switchTab('login'); document.getElementById('authSection').scrollIntoView({behavior:'smooth'});">Log in</button>
       <button class="btn-ghost hidden" id="logoutBtn" onclick="logout()">Log out</button>
     </div>
   </nav>
@@ -435,6 +435,29 @@
         <div class="blip amber" style="top: 68%; left: 30%; animation-delay: 0.8s;" data-label="ETH"></div>
         <div class="blip" style="top: 40%; left: 20%; animation-delay: 1.5s;" data-label="SOL"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- AUTH -->
+  <section id="authSection" style="padding: 10px 0 60px;">
+    <div class="panel" style="max-width: 420px; margin: 0 auto;">
+      <div class="tabs">
+        <div class="tab active" id="tabLogin" onclick="switchTab('login')">Log in</div>
+        <div class="tab" id="tabRegister" onclick="switchTab('register')">Register</div>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuth(event)">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" required autocomplete="current-password" minlength="8">
+        </div>
+        <button type="submit" class="btn-primary" id="authSubmitBtn">Log in</button>
+        <div class="error-text" id="authError"></div>
+      </form>
     </div>
   </section>
 
@@ -556,29 +579,6 @@
     .faq details[open] summary::after { content: '−'; }
     .faq p { color: var(--text-dim); font-size: 14px; margin: 12px 0 0; }
   </style>
-
-  <!-- AUTH -->
-  <section id="authSection">
-    <div class="panel" style="max-width: 420px; margin: 0 auto;">
-      <div class="tabs">
-        <div class="tab active" id="tabLogin" onclick="switchTab('login')">Log in</div>
-        <div class="tab" id="tabRegister" onclick="switchTab('register')">Register</div>
-      </div>
-
-      <form id="authForm" onsubmit="handleAuth(event)">
-        <div class="field">
-          <label for="email">Email</label>
-          <input type="email" id="email" required autocomplete="email">
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input type="password" id="password" required autocomplete="current-password" minlength="8">
-        </div>
-        <button type="submit" class="btn-primary" id="authSubmitBtn">Log in</button>
-        <div class="error-text" id="authError"></div>
-      </form>
-    </div>
-  </section>
 
   <!-- APP (shown only when logged in) -->
   <section id="app">
